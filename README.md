@@ -65,95 +65,35 @@ PASSWORD=passord
 
 ## Bruk
 
-### Enkel kjøring
+### Kjør lokalt på Mac/Linux
 ```bash
 ./scrape_quicksight.py
 ```
 
-### Med systemctl (Raspberry Pi - auto-start ved boot)
-```bash
-# Installer service
-sudo cp quicksight.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable quicksight
-sudo systemctl start quicksight
+### Kjør på Raspberry Pi med systemctl (auto-start ved boot)
 
-# Sjekk status
-sudo systemctl status quicksight
+Se "Raspberry Pi 5 - Installasjon og Konfiguration" seksjonen over for full installasjonsguide.
 
-# Se logger
-journalctl -u quicksight -f
-```
+**Kort oppsummering:**
+- Pi-en kjører automatisk som systemctl service
+- Autostartes ved reboot
+- Administreres via Pi Connect Remote shell
 
-## Web Dashboard - Dashboard Manager
+## Raspberry Pi 5 - Installasjon og Konfiguration
 
-En web-basert dashboard for å administrere alle Raspberry Pi-ene sentralisert.
-
-### Installasjon (Mac/Desktop)
-
-**Backend:**
-```bash
-cd backend
-pip install -r requirements.txt
-python app.py
-```
-
-Backend kjører på `http://localhost:5000`
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend kjører på `http://localhost:5173`
-
-Eller bygg for produksjon:
-```bash
-cd frontend
-npm install
-npm run build
-python ../backend/app.py
-```
-
-Så besøk `http://localhost:5000`
-
-### Funksjoner
-
-- 📊 Dashboard med oversikt over alle 10 Pi-er
-- ⚙️ Rediger CITY og DASHBOARD_MODE for hver Pi
-- 🔄 Restart service fra web-UI
-- 🔗 SSH-basert fjernkontroll (krever SSH-nøkler)
-
-### Setup av SSH-nøkler (en gang per Pi)
-
-**På Mac (genererer nøkkel):**
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/ryde_pi -N ""
-```
-
-**Kopier til hver Pi (erstatt IP-adressen):**
-```bash
-ssh-copy-id -i ~/.ssh/ryde_pi.pub pi@192.168.1.101
-ssh-copy-id -i ~/.ssh/ryde_pi.pub pi@192.168.1.102
-# ... osv for alle 10 Pi-er
-```
-
-## Raspberry Pi 5 - Auto-start ved reboot
-
-### Installasjon på Raspberry Pi
+### Installasjon via Pi Connect (Remote shell)
 
 ```bash
 # Clone repo
-git clone https://github.com/BePedersen/ryde-quicksight-dashboard.git /home/pi/quicksight
-cd /home/pi/quicksight
+cd /home/pi
+git clone https://github.com/BePedersen/ryde-quicksight-dashboard.git quicksight
+cd quicksight
 
-# Opprett .env
+# Opprett .env og rediger CITY
 cp .env.sample .env
-nano .env  # Rediger CITY for denne Pi-en
+nano .env  # Rediger CITY, THEME, DASHBOARD_MODE, etc.
 
-# Installer pakker
+# Installer Python-pakker
 pip install -r requirements.txt
 
 # Lag systemctl service
@@ -184,34 +124,44 @@ sudo systemctl start quicksight
 sudo systemctl status quicksight
 ```
 
-### Raspberry Pi 5 spesifikk - Hent SSH-nøkkel fra Mac
+### Vedlikehold via Pi Connect
 
+**Endre konfigurasjon:**
 ```bash
-# På Pi - motta Mac sin public key
-mkdir -p /home/pi/.ssh
-chmod 700 /home/pi/.ssh
+# Rediger .env
+nano /home/pi/quicksight/.env
 
-# Kopier fra Mac (kjør på Mac):
-ssh-copy-id -i ~/.ssh/ryde_pi.pub pi@192.168.1.101
+# Restart service
+sudo systemctl restart quicksight
 ```
 
-### Vedlikehold
-
+**Sjekk status:**
 ```bash
-# Se status
-sudo systemctl status quicksight
-
 # Se live logs
 sudo journalctl -u quicksight -f
 
-# Restart
-sudo systemctl restart quicksight
+# Sjekk service status
+sudo systemctl status quicksight
+```
 
+**Stopp/Start service:**
+```bash
 # Stopp
 sudo systemctl stop quicksight
 
 # Start
 sudo systemctl start quicksight
+
+# Restart
+sudo systemctl restart quicksight
+```
+
+### Oppdater kode fra GitHub
+
+```bash
+cd /home/pi/quicksight
+git pull
+sudo systemctl restart quicksight
 ```
 
 ## Støttede Byer
@@ -226,17 +176,29 @@ asker, bergen, bodø, borås, changzhou, drammen, eskilstuna, fredrikstad, göte
 
 ## Vedlikehold på flere Raspberry Pi-er
 
-### Oppdater kode på alle Pi-er
-```bash
-./update-all-pis.sh
-```
+### Endre konfigurasjon via Pi Connect
 
-### Sjekk status på alle Pi-er
-```bash
-./status-all-pis.sh
-```
+Hver Pi administreres individuelt via Pi Connect:
 
-Se `PI_CONFIG.txt` for konfigurasjon av hver Pi.
+1. **Åpne Pi Connect**
+2. **Klikk på ønsket Pi-enhet**
+3. **Velg "Remote shell"**
+4. **Gjør endringer:**
+   ```bash
+   nano /home/pi/quicksight/.env
+   sudo systemctl restart quicksight
+   ```
+
+### Batch oppdateringer
+
+Hvis du trenger å oppdatere flere Pi-er samtidig, kan du:
+
+```bash
+# SSH inn på hver Pi (via Remote shell)
+cd /home/pi/quicksight
+git pull
+sudo systemctl restart quicksight
+```
 
 ## Feilsøking
 
