@@ -280,6 +280,8 @@ def setup_driver():
     opts.add_argument("--noerrdialogs")
     opts.add_argument("--disable-low-res-tiling")
     opts.add_argument("--disable-zero-copy")
+    opts.add_argument("--force-device-scale-factor=1.0")
+    opts.add_argument("--force-prefers-reduced-motion")
     opts.add_argument("--enable-features=UseOzonePlatform")
     opts.add_argument("--ozone-platform=wayland")
 
