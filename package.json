@@ -1,0 +1,14 @@
+{
+  "name": "play-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test:install:browsers": "npx playwright install --with-deps",
+    "scrape": "node src/scrape.js",
+    "scrape:pi": "xvfb-run -a node src/scrape.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "playwright": "^1.48.2"
+  }
+}
