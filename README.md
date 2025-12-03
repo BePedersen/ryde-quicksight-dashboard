@@ -85,6 +85,135 @@ sudo systemctl status quicksight
 journalctl -u quicksight -f
 ```
 
+## Web Dashboard - Dashboard Manager
+
+En web-basert dashboard for å administrere alle Raspberry Pi-ene sentralisert.
+
+### Installasjon (Mac/Desktop)
+
+**Backend:**
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
+
+Backend kjører på `http://localhost:5000`
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend kjører på `http://localhost:5173`
+
+Eller bygg for produksjon:
+```bash
+cd frontend
+npm install
+npm run build
+python ../backend/app.py
+```
+
+Så besøk `http://localhost:5000`
+
+### Funksjoner
+
+- 📊 Dashboard med oversikt over alle 10 Pi-er
+- ⚙️ Rediger CITY og DASHBOARD_MODE for hver Pi
+- 🔄 Restart service fra web-UI
+- 🔗 SSH-basert fjernkontroll (krever SSH-nøkler)
+
+### Setup av SSH-nøkler (en gang per Pi)
+
+**På Mac (genererer nøkkel):**
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/ryde_pi -N ""
+```
+
+**Kopier til hver Pi (erstatt IP-adressen):**
+```bash
+ssh-copy-id -i ~/.ssh/ryde_pi.pub pi@192.168.1.101
+ssh-copy-id -i ~/.ssh/ryde_pi.pub pi@192.168.1.102
+# ... osv for alle 10 Pi-er
+```
+
+## Raspberry Pi 5 - Auto-start ved reboot
+
+### Installasjon på Raspberry Pi
+
+```bash
+# Clone repo
+git clone https://github.com/BePedersen/ryde-quicksight-dashboard.git /home/pi/quicksight
+cd /home/pi/quicksight
+
+# Opprett .env
+cp .env.sample .env
+nano .env  # Rediger CITY for denne Pi-en
+
+# Installer pakker
+pip install -r requirements.txt
+
+# Lag systemctl service
+sudo bash -c 'cat > /etc/systemd/system/quicksight.service << EOF
+[Unit]
+Description=AWS QuickSight Dashboard Display
+After=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/quicksight
+ExecStart=/usr/bin/python3 /home/pi/quicksight/scrape_quicksight.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+'
+
+# Enable og start service
+sudo systemctl daemon-reload
+sudo systemctl enable quicksight
+sudo systemctl start quicksight
+
+# Sjekk at det kjører
+sudo systemctl status quicksight
+```
+
+### Raspberry Pi 5 spesifikk - Hent SSH-nøkkel fra Mac
+
+```bash
+# På Pi - motta Mac sin public key
+mkdir -p /home/pi/.ssh
+chmod 700 /home/pi/.ssh
+
+# Kopier fra Mac (kjør på Mac):
+ssh-copy-id -i ~/.ssh/ryde_pi.pub pi@192.168.1.101
+```
+
+### Vedlikehold
+
+```bash
+# Se status
+sudo systemctl status quicksight
+
+# Se live logs
+sudo journalctl -u quicksight -f
+
+# Restart
+sudo systemctl restart quicksight
+
+# Stopp
+sudo systemctl stop quicksight
+
+# Start
+sudo systemctl start quicksight
+```
+
 ## Støttede Byer
 
 Tilgjengelige byvalg i `CITY`:
