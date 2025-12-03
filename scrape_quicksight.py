@@ -223,6 +223,14 @@ def setup_driver():
     username = os.getenv("USERNAME", "").strip()
     password = os.getenv("PASSWORD", "").strip()
 
+    # Slett Chrome profil ved oppstart for å fjerne cache (inkl zoom-innstillinger)
+    try:
+        if os.path.exists(USER_PROFILE):
+            shutil.rmtree(USER_PROFILE)
+            print(f"🧹 Slettet Chrome profil cache: {USER_PROFILE}")
+    except Exception as e:
+        print(f"⚠️  Klarte ikke slette Chrome profil: {e}")
+
     # Finn Chrome/Chromium
     chrome_exec = (
         shutil.which("google-chrome") or
@@ -359,6 +367,14 @@ def close_show_me_more(driver):
         pass
 
 
+def reset_zoom_to_80(driver):
+    """Sett zoom til 80% via JavaScript for å overskriv cache"""
+    try:
+        driver.execute_script("document.body.style.zoom='80%'")
+    except Exception:
+        pass
+
+
 def keep_open_and_reload(driver, operations_url):
     print("🖥️ Dashboardet er åpent. Holder visning i gang.")
     print("🔄 Reloader hver 5. minutt uten ny innlogging.")
@@ -384,6 +400,7 @@ def keep_open_and_reload(driver, operations_url):
                     # Bruk driver.get() med operations_url for å opprettholde CITY-parameteren
                     driver.get(operations_url)
                     time.sleep(2.0)
+                    reset_zoom_to_80(driver)
                     close_show_me_more(driver)
                     last_reload = datetime.now()
                     print("✅ Refresh ferdig.")
@@ -432,6 +449,7 @@ def main():
     print("🌐 Åpner dashboardet …")
     driver.get(operations_url)
     time.sleep(2.0)
+    reset_zoom_to_80(driver)
     close_show_me_more(driver)
 
     # Skriv ut litt status
