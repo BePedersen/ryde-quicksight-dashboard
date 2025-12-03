@@ -31,21 +31,13 @@ def init_db():
     c.execute("SELECT COUNT(*) FROM pis")
     if c.fetchone()[0] == 0:
         pis = [
-            ("pi-turku", "192.168.1.101", "turku"),
-            ("pi-oslo", "192.168.1.102", "oslo"),
-            ("pi-stockholm", "192.168.1.103", "stockholm"),
-            ("pi-göteborg", "192.168.1.104", "göteborg"),
-            ("pi-helsinki", "192.168.1.105", "helsinki"),
-            ("pi-bergen", "192.168.1.106", "bergen"),
-            ("pi-stavanger", "192.168.1.107", "stavanger"),
-            ("pi-trondheim", "192.168.1.108", "trondheim"),
-            ("pi-kampala", "192.168.1.109", "kampala"),
-            ("pi-shanghai", "192.168.1.110", "shanghai"),
+            ("operations-oslo", "10.0.1.99", "oslo", "operations"),
+            ("mekanisk-oslo", "10.0.1.28", "oslo", "mechanics"),
         ]
-        for name, ip, city in pis:
+        for name, ip, city, mode in pis:
             c.execute(
-                "INSERT INTO pis (name, ip, city) VALUES (?, ?, ?)",
-                (name, ip, city)
+                "INSERT INTO pis (name, ip, city, dashboard_mode) VALUES (?, ?, ?, ?)",
+                (name, ip, city, mode)
             )
 
     conn.commit()
