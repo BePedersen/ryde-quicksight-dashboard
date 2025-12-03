@@ -1,0 +1,57 @@
+# Environment variables (contains credentials)
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+quicksight-env/
+
+# Temporary files
+*.tmp
+*.log
+*.pid
+
+# Browser profiles
+/tmp/qschrome-profile
+
+# Node/TypeScript (hvis ikke brukt)
+node_modules/
+dist/
