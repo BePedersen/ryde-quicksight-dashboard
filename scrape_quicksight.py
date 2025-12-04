@@ -394,18 +394,24 @@ def keep_open_and_reload(driver, operations_url):
                     pass
                 os.execv(sys.executable, [sys.executable] + sys.argv)
 
-            if (now - last_reload).total_seconds() >= REFRESH_SECS:
+            elapsed = (now - last_reload).total_seconds()
+            if elapsed >= REFRESH_SECS:
                 try:
-                    print("🔄 Refresh …")
+                    print(f"🔄 Refresh (etter {elapsed:.0f}s) …")
                     # Bruk driver.get() med operations_url for å opprettholde CITY-parameteren
                     driver.get(operations_url)
+                    print("  ✓ driver.get() ferdig")
                     time.sleep(2.0)
                     reset_zoom_to_80(driver)
+                    print("  ✓ zoom reset ferdig")
                     close_show_me_more(driver)
+                    print("  ✓ dialog lukket")
                     last_reload = datetime.now()
                     print("✅ Refresh ferdig.")
                 except Exception as e:
                     print("⚠️  Feil under refresh:", e)
+                    import traceback
+                    traceback.print_exc()
 
             time.sleep(2.0)
     except KeyboardInterrupt:
