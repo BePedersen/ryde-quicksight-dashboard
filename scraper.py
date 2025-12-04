@@ -390,38 +390,21 @@ def login_if_needed(driver, account, username, password, target_url=DEFAULT_URL)
 
 
 def close_password_dialog(driver):
-    """Aggressivt lukk alle passordsparings-dialoger"""
+    """Lukk password dialogen ved å klikke 'Aldri' eller 'Never' knapp"""
     try:
-        # Prøv å finne og lukke passorddialogen med multiple metoder
         driver.execute_script("""
-            // Metode 1: Finn og klikk "Nei/No/Never" knapp
+            // Søk etter alle knapper og finn den som sier "aldri" eller "never"
             const buttons = document.querySelectorAll('button');
             for (let btn of buttons) {
-                const text = btn.textContent.toLowerCase();
-                if (text.includes('nei') || text.includes('no') ||
-                    text.includes('cancel') || text.includes('never') ||
-                    text.includes('dont save') || text.includes('ikke lagre')) {
+                const text = btn.textContent.trim();
+                if (text.toLowerCase().includes('aldri') ||
+                    text.toLowerCase().includes('never')) {
+                    console.log('Fant knapp: ' + text);
                     btn.click();
-                    return;
+                    return true;
                 }
             }
-
-            // Metode 2: Finn og fjern password prompt dialogen fra DOM
-            const dialogs = document.querySelectorAll('[role="dialog"]');
-            for (let dialog of dialogs) {
-                if (dialog.textContent.includes('password') ||
-                    dialog.textContent.includes('passord') ||
-                    dialog.textContent.includes('save password')) {
-                    dialog.remove();
-                    return;
-                }
-            }
-
-            // Metode 3: Lukk Chrome password manager popup hvis den finnes
-            const closeButtons = document.querySelectorAll('[aria-label*="lose"], [aria-label*="ismiss"]');
-            for (let btn of closeButtons) {
-                btn.click();
-            }
+            return false;
         """)
     except Exception:
         pass
