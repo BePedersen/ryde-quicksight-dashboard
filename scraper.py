@@ -285,6 +285,8 @@ def setup_driver():
     opts.add_argument("--disable-save-password-bubble")
     opts.add_argument("--disable-password-generation")
     opts.add_argument("--disable-autofill")
+    opts.add_argument("--disable-credentials-api")
+    opts.add_argument("--disable-offer-store-unmasked-passwords")
     opts.add_argument("--noerrdialogs")
     opts.add_argument("--disable-low-res-tiling")
     opts.add_argument("--disable-zero-copy")
@@ -357,6 +359,28 @@ def login_if_needed(driver, account, username, password, target_url=DEFAULT_URL)
         return False
 
 
+def close_password_dialog(driver):
+    """Lukk passordsparingsdialog hvis den vises"""
+    try:
+        # Prøv å finne og lukke passorddialogen med JavaScript
+        driver.execute_script("""
+            // Finn alle knapper som kan lukke dialogen
+            const buttons = document.querySelectorAll('button');
+            for (let btn of buttons) {
+                if (btn.textContent.includes('Nei') ||
+                    btn.textContent.includes('No') ||
+                    btn.textContent.includes('Cancel') ||
+                    btn.getAttribute('aria-label')?.includes('Close')) {
+                    btn.click();
+                    break;
+                }
+            }
+        """)
+        print("🔒 Lukket passorddialog (hvis den var åpen)")
+    except Exception:
+        pass
+
+
 def close_show_me_more(driver):
     # Håndter "Show me more" hvis den finnes
     try:
@@ -394,8 +418,9 @@ def keep_open_and_reload(driver, operations_url):
                     driver.execute_script("location.reload();")
                     print("  ✓ location.reload() kjørt")
                     time.sleep(3.0)
+                    close_password_dialog(driver)
                     close_show_me_more(driver)
-                    print("  ✓ dialog lukket")
+                    print("  ✓ dialoger lukket")
                     last_reload = datetime.now()
                     print("✅ Refresh ferdig.")
                 except Exception as e:
@@ -445,6 +470,7 @@ def main():
     print("🌐 Åpner dashboardet …")
     driver.get(operations_url)
     time.sleep(2.0)
+    close_password_dialog(driver)
     close_show_me_more(driver)
 
     # Skriv ut litt status
