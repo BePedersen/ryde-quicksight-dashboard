@@ -367,14 +367,6 @@ def close_show_me_more(driver):
         pass
 
 
-def reset_zoom_to_80(driver):
-    """Sett zoom til 80% via JavaScript for å overskriv cache"""
-    try:
-        driver.execute_script("document.body.style.zoom='80%'")
-    except Exception:
-        pass
-
-
 def keep_open_and_reload(driver, operations_url):
     print("🖥️ Dashboardet er åpent. Holder visning i gang.")
     print("🔄 Reloader hver 5. minutt uten ny innlogging.")
@@ -402,8 +394,6 @@ def keep_open_and_reload(driver, operations_url):
                     driver.get(operations_url)
                     print("  ✓ driver.get() ferdig")
                     time.sleep(2.0)
-                    reset_zoom_to_80(driver)
-                    print("  ✓ zoom reset ferdig")
                     close_show_me_more(driver)
                     print("  ✓ dialog lukket")
                     last_reload = datetime.now()
@@ -455,7 +445,6 @@ def main():
     print("🌐 Åpner dashboardet …")
     driver.get(operations_url)
     time.sleep(2.0)
-    reset_zoom_to_80(driver)
     close_show_me_more(driver)
 
     # Skriv ut litt status
