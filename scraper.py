@@ -223,13 +223,38 @@ def setup_driver():
     username = os.getenv("USERNAME", "").strip()
     password = os.getenv("PASSWORD", "").strip()
 
-    # Slett Chrome profil ved oppstart for å fjerne cache (inkl zoom-innstillinger)
+    # Slett Chrome profil ved oppstart for å fjerne cache
     try:
         if os.path.exists(USER_PROFILE):
             shutil.rmtree(USER_PROFILE)
             print(f"🧹 Slettet Chrome profil cache: {USER_PROFILE}")
     except Exception as e:
         print(f"⚠️  Klarte ikke slette Chrome profil: {e}")
+
+    # Opprett Default profil med deaktiverte password-innstillinger
+    try:
+        import json
+        profile_path = Path(USER_PROFILE) / "Default"
+        profile_path.mkdir(parents=True, exist_ok=True)
+
+        prefs = {
+            "profile": {
+                "password_manager_enabled": False,
+                "password_bubble_on_signin": False
+            },
+            "credentials_enable_service": False,
+            "passwords": {},
+            "autofill": {
+                "enabled": False
+            }
+        }
+
+        prefs_file = profile_path / "Preferences"
+        with open(prefs_file, 'w') as f:
+            json.dump(prefs, f)
+        print(f"✅ Opprettet Chrome Preferences med deaktivert password manager")
+    except Exception as e:
+        print(f"⚠️  Klarte ikke opprette Chrome Preferences: {e}")
 
     # Finn Chrome/Chromium
     chrome_exec = (
@@ -287,6 +312,11 @@ def setup_driver():
     opts.add_argument("--disable-autofill")
     opts.add_argument("--disable-credentials-api")
     opts.add_argument("--disable-offer-store-unmasked-passwords")
+    opts.add_argument("--disable-password-manager")
+    opts.add_argument("--disable-password-manager-ui")
+    opts.add_argument("--disable-password-manager-ui-for-signin")
+    opts.add_argument("--disable-fillonaccount-select")
+    opts.add_argument("--disable-ipcflooding-protection")
     opts.add_argument("--noerrdialogs")
     opts.add_argument("--disable-low-res-tiling")
     opts.add_argument("--disable-zero-copy")
@@ -360,23 +390,39 @@ def login_if_needed(driver, account, username, password, target_url=DEFAULT_URL)
 
 
 def close_password_dialog(driver):
-    """Lukk passordsparingsdialog hvis den vises"""
+    """Aggressivt lukk alle passordsparings-dialoger"""
     try:
-        # Prøv å finne og lukke passorddialogen med JavaScript
+        # Prøv å finne og lukke passorddialogen med multiple metoder
         driver.execute_script("""
-            // Finn alle knapper som kan lukke dialogen
+            // Metode 1: Finn og klikk "Nei/No/Never" knapp
             const buttons = document.querySelectorAll('button');
             for (let btn of buttons) {
-                if (btn.textContent.includes('Nei') ||
-                    btn.textContent.includes('No') ||
-                    btn.textContent.includes('Cancel') ||
-                    btn.getAttribute('aria-label')?.includes('Close')) {
+                const text = btn.textContent.toLowerCase();
+                if (text.includes('nei') || text.includes('no') ||
+                    text.includes('cancel') || text.includes('never') ||
+                    text.includes('dont save') || text.includes('ikke lagre')) {
                     btn.click();
-                    break;
+                    return;
                 }
             }
+
+            // Metode 2: Finn og fjern password prompt dialogen fra DOM
+            const dialogs = document.querySelectorAll('[role="dialog"]');
+            for (let dialog of dialogs) {
+                if (dialog.textContent.includes('password') ||
+                    dialog.textContent.includes('passord') ||
+                    dialog.textContent.includes('save password')) {
+                    dialog.remove();
+                    return;
+                }
+            }
+
+            // Metode 3: Lukk Chrome password manager popup hvis den finnes
+            const closeButtons = document.querySelectorAll('[aria-label*="lose"], [aria-label*="ismiss"]');
+            for (let btn of closeButtons) {
+                btn.click();
+            }
         """)
-        print("🔒 Lukket passorddialog (hvis den var åpen)")
     except Exception:
         pass
 
@@ -469,8 +515,10 @@ def main():
     # Hvis allerede innlogget, eller login gikk bra:
     print("🌐 Åpner dashboardet …")
     driver.get(operations_url)
-    time.sleep(2.0)
-    close_password_dialog(driver)
+    # Aggressivt lukk password dialogs mens siden laster
+    for i in range(5):
+        time.sleep(0.5)
+        close_password_dialog(driver)
     close_show_me_more(driver)
 
     # Skriv ut litt status
