@@ -390,10 +390,10 @@ def keep_open_and_reload(driver, operations_url):
             if elapsed >= REFRESH_SECS:
                 try:
                     print(f"🔄 Refresh (etter {elapsed:.0f}s) …")
-                    # Bruk driver.get() med operations_url for å opprettholde CITY-parameteren
-                    driver.get(operations_url)
-                    print("  ✓ driver.get() ferdig")
-                    time.sleep(2.0)
+                    # Gentle refresh med JavaScript F5 istedenfor driver.get()
+                    driver.execute_script("location.reload();")
+                    print("  ✓ location.reload() kjørt")
+                    time.sleep(3.0)
                     close_show_me_more(driver)
                     print("  ✓ dialog lukket")
                     last_reload = datetime.now()
