@@ -164,6 +164,18 @@ def get_current_theme():
         return "midnight"
 
 
+def restart_process(driver=None, reason="Unknown"):
+    """Restarter prosessen. Lukker driver først hvis gitt."""
+    print(f"\n🔄 Restarter prosessen: {reason}")
+    if driver:
+        try:
+            driver.quit()
+        except Exception:
+            pass
+    time.sleep(2)  # Kort pause før restart
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+
 def next_restart_at(times=("06:00", "22:00")):
     """
     Returner neste restart-tidspunkt i dag/ i morgen gitt faste klokkeslett (lokal tid).
@@ -389,6 +401,189 @@ def login_if_needed(driver, account, username, password, target_url=DEFAULT_URL)
         return False
 
 
+def check_dashboard_visible(driver, timeout=30):
+    """
+    Sjekker om QuickSight-dashboardet er synlig og lastet korrekt.
+
+    Returnerer:
+        dict med status:
+        - 'visible': True hvis dashboardet er synlig
+        - 'reason': Beskrivelse av status
+        - 'checks': Dict med individuelle sjekker
+    """
+    checks = {
+        'not_on_signin': False,
+        'no_error_page': False,
+        'dashboard_container': False,
+        'visuals_loaded': False,
+        'no_loading_spinner': False,
+    }
+
+    try:
+        current_url = driver.current_url.lower()
+
+        # 1. Sjekk at vi ikke er på innloggingssiden
+        checks['not_on_signin'] = 'signin' not in current_url
+        if not checks['not_on_signin']:
+            return {
+                'visible': False,
+                'reason': 'Stuck on signin page',
+                'checks': checks
+            }
+
+        # 2. Sjekk for feilsider
+        error_indicators = [
+            "//div[contains(@class, 'error')]//h1",
+            "//div[contains(text(), 'Something went wrong')]",
+            "//div[contains(text(), 'Access denied')]",
+            "//div[contains(text(), 'not found')]",
+        ]
+        has_error = False
+        for xpath in error_indicators:
+            try:
+                el = driver.find_element(By.XPATH, xpath)
+                if el.is_displayed():
+                    has_error = True
+                    break
+            except NoSuchElementException:
+                pass
+        checks['no_error_page'] = not has_error
+        if not checks['no_error_page']:
+            return {
+                'visible': False,
+                'reason': 'Error page detected',
+                'checks': checks
+            }
+
+        # 3. Sjekk at dashboard-container finnes
+        dashboard_selectors = [
+            "[class*='dashboard']",
+            "[class*='Dashboard']",
+            "[data-testid='dashboard']",
+            ".quicksight-embedding-iframe",
+            "[class*='visual-container']",
+            "[class*='sheet-container']",
+        ]
+        for selector in dashboard_selectors:
+            try:
+                el = driver.find_element(By.CSS_SELECTOR, selector)
+                if el.is_displayed():
+                    checks['dashboard_container'] = True
+                    break
+            except NoSuchElementException:
+                pass
+
+        # 4. Sjekk at visuals (grafer, tabeller) er lastet
+        visual_selectors = [
+            "[class*='visual']",
+            "[class*='chart']",
+            "[class*='kpi']",
+            "[class*='table']",
+            "svg[class*='chart']",
+            "canvas",
+            "[class*='insight']",
+        ]
+        visuals_found = 0
+        for selector in visual_selectors:
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                visuals_found += sum(1 for el in elements if el.is_displayed())
+            except Exception:
+                pass
+        checks['visuals_loaded'] = visuals_found >= 1
+
+        # 5. Sjekk at det ikke er loading spinner synlig
+        spinner_selectors = [
+            "[class*='loading']",
+            "[class*='spinner']",
+            "[class*='Loading']",
+            "[class*='Spinner']",
+            "[role='progressbar']",
+        ]
+        spinner_visible = False
+        for selector in spinner_selectors:
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                for el in elements:
+                    if el.is_displayed():
+                        # Dobbeltsjekk at det faktisk er en spinner (ikke bare et element med loading i navnet)
+                        size = el.size
+                        if size['width'] > 0 and size['height'] > 0:
+                            spinner_visible = True
+                            break
+            except Exception:
+                pass
+            if spinner_visible:
+                break
+        checks['no_loading_spinner'] = not spinner_visible
+
+        # Evaluer samlet status
+        # Dashboard er synlig hvis vi har container ELLER visuals, og ingen spinner
+        is_visible = (
+            checks['not_on_signin'] and
+            checks['no_error_page'] and
+            (checks['dashboard_container'] or checks['visuals_loaded']) and
+            checks['no_loading_spinner']
+        )
+
+        if is_visible:
+            reason = f"Dashboard visible ({visuals_found} visuals found)"
+        elif not checks['no_loading_spinner']:
+            reason = "Dashboard still loading"
+        elif not checks['dashboard_container'] and not checks['visuals_loaded']:
+            reason = "No dashboard elements found"
+        else:
+            reason = "Dashboard state unclear"
+
+        return {
+            'visible': is_visible,
+            'reason': reason,
+            'checks': checks
+        }
+
+    except Exception as e:
+        return {
+            'visible': False,
+            'reason': f"Check failed: {e}",
+            'checks': checks
+        }
+
+
+def wait_for_dashboard_visible(driver, timeout=60, poll_interval=2):
+    """
+    Venter til dashboardet er synlig, med timeout.
+
+    Args:
+        driver: Selenium WebDriver
+        timeout: Maks ventetid i sekunder
+        poll_interval: Hvor ofte vi sjekker (sekunder)
+
+    Returns:
+        dict med status fra check_dashboard_visible, eller timeout-feil
+    """
+    start_time = time.time()
+    last_status = None
+
+    while (time.time() - start_time) < timeout:
+        status = check_dashboard_visible(driver)
+        last_status = status
+
+        if status['visible']:
+            elapsed = time.time() - start_time
+            print(f"✅ Dashboard synlig etter {elapsed:.1f}s: {status['reason']}")
+            return status
+
+        time.sleep(poll_interval)
+
+    elapsed = time.time() - start_time
+    print(f"⚠️  Timeout etter {elapsed:.1f}s: {last_status['reason'] if last_status else 'Unknown'}")
+    return last_status or {
+        'visible': False,
+        'reason': f'Timeout after {timeout}s',
+        'checks': {}
+    }
+
+
 def close_password_dialog(driver):
     """Lukk password dialogen ved å klikke 'Aldri' eller 'Never' knapp"""
     try:
@@ -432,12 +627,7 @@ def keep_open_and_reload(driver, operations_url):
         while True:
             now = datetime.now()
             if now >= restart_at:
-                print(f"\n⏰ {now:%H:%M}: Daglig restart …")
-                try:
-                    driver.quit()
-                except Exception:
-                    pass
-                os.execv(sys.executable, [sys.executable] + sys.argv)
+                restart_process(driver, f"Daglig planlagt restart kl. {now:%H:%M}")
 
             elapsed = (now - last_reload).total_seconds()
             if elapsed >= REFRESH_SECS:
@@ -450,12 +640,21 @@ def keep_open_and_reload(driver, operations_url):
                     close_password_dialog(driver)
                     close_show_me_more(driver)
                     print("  ✓ dialoger lukket")
+
+                    # Verifiser at dashboardet er synlig etter refresh
+                    status = wait_for_dashboard_visible(driver, timeout=30, poll_interval=2)
+                    if not status['visible']:
+                        print(f"⚠️  Dashboard ikke synlig etter refresh: {status['reason']}")
+                        print(f"    Checks: {status['checks']}")
+                        restart_process(driver, f"Dashboard ikke synlig: {status['reason']}")
+
                     last_reload = datetime.now()
                     print("✅ Refresh ferdig.")
                 except Exception as e:
                     print("⚠️  Feil under refresh:", e)
                     import traceback
                     traceback.print_exc()
+                    restart_process(driver, f"Feil under refresh: {e}")
 
             time.sleep(2.0)
     except KeyboardInterrupt:
@@ -511,6 +710,16 @@ def main():
         print("🔗 URL:", driver.current_url)
     except Exception:
         pass
+
+    # Verifiser at dashboardet er synlig før vi starter refresh-loopen
+    print("🔍 Verifiserer at dashboardet er synlig …")
+    status = wait_for_dashboard_visible(driver, timeout=60, poll_interval=3)
+    if status['visible']:
+        print(f"✅ Dashboard bekreftet synlig: {status['reason']}")
+    else:
+        print(f"⚠️  Dashboard ikke synlig: {status['reason']}")
+        print(f"    Checks: {status['checks']}")
+        restart_process(driver, f"Dashboard ikke synlig ved oppstart: {status['reason']}")
 
     keep_open_and_reload(driver, operations_url)
 

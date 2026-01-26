@@ -11,8 +11,14 @@ Selenium-basert applikasjon for fullskjerm-visning av AWS QuickSight-dashboards 
 - 🎨 Tema-bytte basert på tid (light 06:30-22:30, midnight 22:30-06:30)
 - ⏰ Automatisk daglig restart (06:30, 14:30, 22:30)
 - 📱 Optimalisert for Raspberry Pi
+- 🩺 Dashboard health check med auto-restart ved feil
 
 ## Krav
+
+## update and restart command
+cd ~/play-scraper
+curl -o scraper.py https://raw.githubusercontent.com/BePedersen/ryde-quicksight-dashboard/main/scraper.py
+python scraper.py
 
 ### macOS
 - Google Chrome (installert)
@@ -174,6 +180,31 @@ asker, bergen, bodø, borås, changzhou, drammen, eskilstuna, fredrikstad, göte
 - **Automatisk (standard):** Light mode 06:30-22:30, midnight mode 22:30-06:30
 - **Manuell:** Sett `THEME=light` eller `THEME=midnight` i `.env` for å låse til ett tema
 
+## Dashboard Health Check
+
+Scriptet verifiserer automatisk at dashboardet er synlig og fungerer. Ved oppstart og etter hver refresh kjøres følgende sjekker:
+
+| Sjekk | Beskrivelse |
+|-------|-------------|
+| `not_on_signin` | Ikke stuck på login-siden |
+| `no_error_page` | Ingen feilmeldinger (Access denied, Something went wrong, etc.) |
+| `dashboard_container` | Dashboard-container elementer finnes |
+| `visuals_loaded` | Grafer, KPIs og tabeller er rendret |
+| `no_loading_spinner` | Ingen loading-spinner synlig |
+
+### Auto-restart
+
+Hvis dashboardet ikke er synlig, restarter scriptet automatisk:
+
+- **Ved oppstart:** Venter opptil 60 sekunder, restarter hvis dashboard ikke laster
+- **Etter refresh:** Venter opptil 30 sekunder, restarter hvis dashboard forsvinner
+- **Ved feil:** Restarter umiddelbart ved exceptions
+
+Logs viser restart-årsak:
+```
+🔄 Restarter prosessen: Dashboard ikke synlig ved oppstart: No dashboard elements found
+```
+
 ## Vedlikehold på flere Raspberry Pi-er
 
 ### Endre konfigurasjon via Pi Connect
@@ -214,6 +245,12 @@ sudo systemctl restart quicksight
 ### Performance
 - Øk `REFRESH_SECS` hvis Pi-en er treg
 - Sjekk Chrome cache: `rm -rf /tmp/qschrome-profile` (fjerner lagret profil)
+
+### Dashboard restarter i loop
+Hvis scriptet restarter kontinuerlig:
+- Sjekk at QuickSight-dashboardet faktisk eksisterer og er tilgjengelig
+- Se logs for hvilken sjekk som feiler: `sudo journalctl -u quicksight -f`
+- Mulige årsaker: Nettverksproblemer, ugyldig dashboard-ID, session utløpt
 
 ## Lisens
 
