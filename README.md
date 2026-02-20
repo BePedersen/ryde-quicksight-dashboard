@@ -16,9 +16,9 @@ Selenium-basert applikasjon for fullskjerm-visning av AWS QuickSight-dashboards 
 ## Krav
 
 ## update and restart command
-cd ~/play-scraper
+cd ~/ryde-quicksight-dashboard
 curl -o scraper.py https://raw.githubusercontent.com/BePedersen/ryde-quicksight-dashboard/main/scraper.py
-python scraper.py
+sudo systemctl restart ryde-quicksight-dashboard
 
 ### macOS
 - Google Chrome (installert)
@@ -27,6 +27,28 @@ python scraper.py
 ### Raspberry Pi OS
 ```bash
 sudo apt-get install -y chromium chromium-driver python3 python3-pip
+```
+
+### Installer Apple-emojier på Raspberry Pi 5
+
+Raspberry Pi OS viser ikke emojier som standard. Slik installerer du Apple Color Emoji-font:
+
+```bash
+# Installer avhengigheter
+sudo apt-get install -y fontconfig
+
+# Last ned Apple Color Emoji-font
+wget -q https://github.com/samuelngs/apple-emoji-linux/releases/latest/download/AppleColorEmoji.ttf -O /tmp/AppleColorEmoji.ttf
+
+# Installer fonten
+sudo mkdir -p /usr/local/share/fonts/apple-emoji
+sudo mv /tmp/AppleColorEmoji.ttf /usr/local/share/fonts/apple-emoji/
+
+# Oppdater font-cache
+sudo fc-cache -fv
+
+# Verifiser at fonten er installert
+fc-list | grep -i apple
 ```
 
 ## Instalasjon
@@ -73,7 +95,7 @@ PASSWORD=passord
 
 ### Kjør lokalt på Mac/Linux
 ```bash
-./scrape_quicksight.py
+python scraper.py
 ```
 
 ### Kjør på Raspberry Pi med systemctl (auto-start ved boot)
@@ -92,8 +114,8 @@ Se "Raspberry Pi 5 - Installasjon og Konfiguration" seksjonen over for full inst
 ```bash
 # Clone repo
 cd /home/pi
-git clone https://github.com/BePedersen/ryde-quicksight-dashboard.git quicksight
-cd quicksight
+git clone https://github.com/BePedersen/ryde-quicksight-dashboard.git
+cd ryde-quicksight-dashboard
 
 # Opprett .env og rediger CITY
 cp .env.sample .env
@@ -103,7 +125,7 @@ nano .env  # Rediger CITY, THEME, DASHBOARD_MODE, etc.
 pip install -r requirements.txt
 
 # Lag systemctl service
-sudo bash -c 'cat > /etc/systemd/system/quicksight.service << EOF
+sudo bash -c 'cat > /etc/systemd/system/ryde-quicksight-dashboard.service << EOF
 [Unit]
 Description=AWS QuickSight Dashboard Display
 After=network-online.target
@@ -111,8 +133,8 @@ After=network-online.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/quicksight
-ExecStart=/usr/bin/python3 /home/pi/quicksight/scrape_quicksight.py
+WorkingDirectory=/home/pi/ryde-quicksight-dashboard
+ExecStart=/usr/bin/python3 /home/pi/ryde-quicksight-dashboard/scraper.py
 Restart=always
 RestartSec=10
 
@@ -123,11 +145,11 @@ EOF
 
 # Enable og start service
 sudo systemctl daemon-reload
-sudo systemctl enable quicksight
-sudo systemctl start quicksight
+sudo systemctl enable ryde-quicksight-dashboard
+sudo systemctl start ryde-quicksight-dashboard
 
 # Sjekk at det kjører
-sudo systemctl status quicksight
+sudo systemctl status ryde-quicksight-dashboard
 ```
 
 ### Vedlikehold via Pi Connect
@@ -135,39 +157,67 @@ sudo systemctl status quicksight
 **Endre konfigurasjon:**
 ```bash
 # Rediger .env
-nano /home/pi/quicksight/.env
+nano /home/pi/ryde-quicksight-dashboard/.env
 
 # Restart service
-sudo systemctl restart quicksight
+sudo systemctl restart ryde-quicksight-dashboard
 ```
 
 **Sjekk status:**
 ```bash
 # Se live logs
-sudo journalctl -u quicksight -f
+sudo journalctl -u ryde-quicksight-dashboard -f
 
 # Sjekk service status
-sudo systemctl status quicksight
+sudo systemctl status ryde-quicksight-dashboard
 ```
 
 **Stopp/Start service:**
 ```bash
 # Stopp
-sudo systemctl stop quicksight
+sudo systemctl stop ryde-quicksight-dashboard
 
 # Start
-sudo systemctl start quicksight
+sudo systemctl start ryde-quicksight-dashboard
 
 # Restart
-sudo systemctl restart quicksight
+sudo systemctl restart ryde-quicksight-dashboard
 ```
 
 ### Oppdater kode fra GitHub
 
 ```bash
-cd /home/pi/quicksight
+cd /home/pi/ryde-quicksight-dashboard
 git pull
-sudo systemctl restart quicksight
+sudo systemctl restart ryde-quicksight-dashboard
+```
+
+### Kjør manuelt med screen (debugging)
+
+For å kjøre scriptet manuelt i en persistent terminal-sesjon:
+
+```bash
+# Installer screen (første gang)
+sudo apt install screen
+
+# Start ny screen-sesjon
+screen -S dashboard
+
+# Kjør scriptet
+cd /home/pi/ryde-quicksight-dashboard
+python scraper.py
+
+# Detach fra screen (scriptet fortsetter å kjøre)
+# Trykk: Ctrl+A, deretter D
+
+# List aktive screen-sesjoner
+screen -ls
+
+# Koble til eksisterende sesjon igjen
+screen -r dashboard
+
+# Avslutt screen-sesjon (når tilkoblet)
+exit
 ```
 
 ## Støttede Byer
@@ -216,8 +266,8 @@ Hver Pi administreres individuelt via Pi Connect:
 3. **Velg "Remote shell"**
 4. **Gjør endringer:**
    ```bash
-   nano /home/pi/quicksight/.env
-   sudo systemctl restart quicksight
+   nano /home/pi/ryde-quicksight-dashboard/.env
+   sudo systemctl restart ryde-quicksight-dashboard
    ```
 
 ### Batch oppdateringer
@@ -226,9 +276,9 @@ Hvis du trenger å oppdatere flere Pi-er samtidig, kan du:
 
 ```bash
 # SSH inn på hver Pi (via Remote shell)
-cd /home/pi/quicksight
+cd /home/pi/ryde-quicksight-dashboard
 git pull
-sudo systemctl restart quicksight
+sudo systemctl restart ryde-quicksight-dashboard
 ```
 
 ## Feilsøking
@@ -236,11 +286,11 @@ sudo systemctl restart quicksight
 ### Ingen innlogging
 - Sjekk `USERNAME` og `PASSWORD` i `.env`
 - Sjekk at Chrome/Chromium er installert
-- Se logs med: `sudo journalctl -u quicksight -f`
+- Se logs med: `sudo journalctl -u ryde-quicksight-dashboard -f`
 
 ### Feil tema eller by
 - Sjekk at `CITY` og `THEME` er stavd riktig (små bokstaver)
-- Restart service: `sudo systemctl restart quicksight`
+- Restart service: `sudo systemctl restart ryde-quicksight-dashboard`
 
 ### Performance
 - Øk `REFRESH_SECS` hvis Pi-en er treg
@@ -249,7 +299,7 @@ sudo systemctl restart quicksight
 ### Dashboard restarter i loop
 Hvis scriptet restarter kontinuerlig:
 - Sjekk at QuickSight-dashboardet faktisk eksisterer og er tilgjengelig
-- Se logs for hvilken sjekk som feiler: `sudo journalctl -u quicksight -f`
+- Se logs for hvilken sjekk som feiler: `sudo journalctl -u ryde-quicksight-dashboard -f`
 - Mulige årsaker: Nettverksproblemer, ugyldig dashboard-ID, session utløpt
 
 ## Lisens
