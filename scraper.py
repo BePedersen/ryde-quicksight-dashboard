@@ -74,6 +74,7 @@ MECHANICS_SHEET_ID_LIGHT = "b8858404-f110-4efd-96f9-bf50ccf495be"
 
 # City-mappinger
 CITY_MAPPING = {
+    "aachen": "aachen",
     "asker": "asker%20%26%20bærum",
     "bergen": "bergen",
     "bodø": "bodø",
@@ -81,9 +82,11 @@ CITY_MAPPING = {
     "changzhou": "changzhou%20%26%20shanghai",
     "drammen": "drammen",
     "eskilstuna": "eskilstuna",
+    "frankfurt": "frankfurt",
     "fredrikstad": "fredrikstad%20%26%20sarpsborg",
     "göteborg": "göteborg",
     "halmstad": "halmstad",
+    "hamburg": "hamburg",
     "helsingborg": "helsingborg",
     "hämeenlinna": "hämeenlinna",
     "helsinki": "helsinki%20%26%20espoo%20%26%20vantaa%20%26%20myyrmäki",
@@ -93,6 +96,7 @@ CITY_MAPPING = {
     "karlstad": "karlstad",
     "kristiansand": "kristiansand",
     "kuopio": "kuopio",
+    "köln": "köln",
     "lahti": "lahti",
     "lappeenranta": "lappeenranta",
     "linköping": "linköping",

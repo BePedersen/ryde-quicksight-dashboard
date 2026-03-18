@@ -29,26 +29,15 @@ sudo systemctl restart ryde-quicksight-dashboard
 sudo apt-get install -y chromium chromium-driver python3 python3-pip
 ```
 
-### Installer Apple-emojier på Raspberry Pi 5
+### Installer emojier på Raspberry Pi 5
 
-Raspberry Pi OS viser ikke emojier som standard. Slik installerer du Apple Color Emoji-font:
+Raspberry Pi OS viser ikke emojier som standard. Installer Noto Color Emoji-font:
 
 ```bash
-# Installer avhengigheter
-sudo apt-get install -y fontconfig
-
-# Last ned Apple Color Emoji-font
-wget -q https://github.com/samuelngs/apple-emoji-linux/releases/latest/download/AppleColorEmoji.ttf -O /tmp/AppleColorEmoji.ttf
-
-# Installer fonten
-sudo mkdir -p /usr/local/share/fonts/apple-emoji
-sudo mv /tmp/AppleColorEmoji.ttf /usr/local/share/fonts/apple-emoji/
-
-# Oppdater font-cache
-sudo fc-cache -fv
+sudo apt-get install -y fonts-noto-color-emoji
 
 # Verifiser at fonten er installert
-fc-list | grep -i apple
+fc-list | grep -i noto | grep -i emoji
 ```
 
 ## Instalasjon
