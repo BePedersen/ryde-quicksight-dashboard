@@ -270,6 +270,9 @@ git pull
 sudo systemctl restart ryde-quicksight-dashboard
 ```
 
+cd ryde-quicksight-dashboard
+git pull
+
 ## Feilsøking
 
 ### Ingen innlogging

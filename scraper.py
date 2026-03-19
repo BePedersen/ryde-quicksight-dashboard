@@ -140,6 +140,8 @@ SEL_PASS = "input#awsui-input-0, input[id^='awsui-input'], input[type='password'
 SEL_NEXT = "//button[contains(., 'Next') or contains(., 'Neste') or @type='submit']"
 SEL_SIGNIN = "//button[contains(., 'Sign in') or @type='submit']"
 SEL_SHOW_MORE = "//button[contains(., 'Show me more')]"
+SEL_BACK = "/html/body/div[5]/div[3]/div/div/div[2]/div[2]/div[2]/button[1]"
+SEL_X_CLOSE = "/html/body/div[5]/div[3]/div/button"
 
 
 def getenv_bool(name: str, default: bool) -> bool:
@@ -610,7 +612,16 @@ def close_password_dialog(driver):
 
 
 def close_show_me_more(driver):
-    # Håndter "Show me more" hvis den finnes
+    # Håndter navigasjons-popup: prøv Back, så X, så "Show me more"
+    try:
+        if click_xpath_if_present(driver, SEL_BACK, timeout=6):
+            print("✅ Lukket popup via 'Back'.")
+            time.sleep(1.0)
+        elif click_xpath_if_present(driver, SEL_X_CLOSE, timeout=3):
+            print("✅ Lukket popup via X.")
+            time.sleep(1.0)
+    except Exception:
+        pass
     try:
         if click_xpath_if_present(driver, SEL_SHOW_MORE, timeout=6):
             print("✅ Lukket 'Show me more'.")
