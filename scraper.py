@@ -399,7 +399,7 @@ def login_if_needed(driver, account, username, password, target_url=DEFAULT_URL)
 
     # Vent på at vi forlater signin
     try:
-        WebDriverWait(driver, 60).until(lambda d: "signin" not in d.current_url.lower())
+        WebDriverWait(driver, 10).until(lambda d: "signin" not in d.current_url.lower())
         print("✅ Innlogging OK.")
         return True
     except TimeoutException:
@@ -713,7 +713,7 @@ def main():
     print("🌐 Åpner dashboardet …")
     driver.get(operations_url)
     # Aggressivt lukk password dialogs mens siden laster
-    for i in range(5):
+    for _ in range(5):
         time.sleep(0.5)
         close_password_dialog(driver)
     close_show_me_more(driver)
